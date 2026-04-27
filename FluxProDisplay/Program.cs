@@ -31,11 +31,21 @@ internal static class Program
                 // set up appsettings configuration
                 var configuration = new ConfigurationBuilder()
                     .SetBasePath(AppContext.BaseDirectory)
-                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
                     .Build();
 
                 var rootConfig = configuration.Get<RootConfig>();
-                
+
+                if (rootConfig?.AppInfo == null || rootConfig.AppSettings == null)
+                {
+                    MessageBox.Show(
+                        "appsettings.json is missing or malformed. Expected AppInfo and AppSettings sections.",
+                        "Configuration Error",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+                    Environment.Exit(1);
+                }
+
                 ApplicationConfiguration.Initialize();
                 Application.Run(new FluxProDisplayTray(rootConfig!));
             }
@@ -43,15 +53,31 @@ internal static class Program
         catch (Exception ex)
         {
             // debug logs for this are located in %APPDATA%\FluxProDisplay\error.log
+            Logger.LogError(ex);
+            throw;
+        }
+    }
+}
+
+internal static class Logger
+{
+    public static void LogError(Exception ex)
+    {
+        try
+        {
             var logPath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 "FluxProDisplay",
                 "error.log");
 
             Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
-            File.WriteAllText(logPath, ex.ToString());
-
-            throw;
+            File.AppendAllText(
+                logPath,
+                $"[{DateTime.Now:O}] {ex}{Environment.NewLine}{Environment.NewLine}");
+        }
+        catch
+        {
+            // a failure to log must not crash the app
         }
     }
 }

@@ -13,27 +13,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup .NET Core 9
-      uses: actions/setup-dotnet@v4
+    - uses: actions/checkout@v6
+
+    - name: Setup .NET 10
+      uses: actions/setup-dotnet@v5
       with:
-        dotnet-version: 9.0.x
-        
+        dotnet-version: 10.0.x
+
     - name: Restore dependencies
       run: dotnet restore
 
-    - name: Update appsettings.json version and debug
+    - name: Disable debug in appsettings.json for release
       run: |
-        VERSION=${GITHUB_REF#refs/tags/}
-        DEBUG=false
-        echo "Updating appsettings.json file with version: $VERSION and debug set to: $DEBUG"
-        jq --arg ver "$VERSION" --argjson dbg $DEBUG \
-           '.AppInfo.Version = $ver | .AppInfo.Debug = $dbg' \
-           FluxProDisplay/appsettings.json > tmp.json && mv tmp.json FluxProDisplay/appsettings.json
-      
+        jq '.AppInfo.Debug = false' FluxProDisplay/appsettings.json > tmp.json && mv tmp.json FluxProDisplay/appsettings.json
+
     - name: Build and publish
-      run: dotnet publish -c Release -r win-x64 -p:SelfContained=false --property:PublishDir=$(pwd)/publish
+      run: dotnet publish -c Release -r win-x64 -p:SelfContained=false -p:Version=${GITHUB_REF#refs/tags/v} --property:PublishDir=$(pwd)/publish
 
     - name: Zip published output
       run: |
@@ -42,7 +37,7 @@ jobs:
         cd ..
 
     - name: Create GitHub Release
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         files: antecfluxprodisplay.zip
       env:

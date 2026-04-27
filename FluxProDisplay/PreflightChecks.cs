@@ -20,7 +20,7 @@ public static class PreflightChecks
         if (!isRunning) return;
 
         MessageBox.Show("iUnity is running, please end the iUnity program and its related processes from task manager and try again.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        Environment.Exit(0);
+        Environment.Exit(1);
     }
 
     /// <summary>
@@ -39,7 +39,7 @@ public static class PreflightChecks
                 }
                 else
                 {
-                    Environment.Exit(0);
+                    Environment.Exit(1);
                 }
             }
         }
@@ -52,7 +52,7 @@ public static class PreflightChecks
             }
             else
             {
-                Environment.Exit(0);
+                Environment.Exit(1);
             }
         }
     }
