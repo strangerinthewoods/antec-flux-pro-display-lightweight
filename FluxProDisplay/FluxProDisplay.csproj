@@ -52,4 +52,33 @@
       </EmbeddedResource>
     </ItemGroup>
 
+  <!-- Copy helper output and any shipped LibreHardwareMonitor files into the main app output after build -->
+  <Target Name="CopyHardwareMonitorHelper" AfterTargets="Build">
+    <PropertyGroup>
+      <!-- adjust these paths if you build RID-specific outputs (net10.0-windows, win-x64, etc.) -->
+      <HelperBuildDir>$(SolutionDir)HardwareMonitorHelper\bin\$(Configuration)\net10.0</HelperBuildDir>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <HelperFiles Include="$(HelperBuildDir)\**\*.*" />
+    </ItemGroup>
+
+    <Message Text="Copying HardwareMonitorHelper files to $(OutputPath)" Importance="Low" />
+    <Copy SourceFiles="@(HelperFiles)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+  </Target>
+
+  <!-- Guarded copy: copy helper output only when the helper has been built locally. -->
+  <PropertyGroup>
+    <HelperBuildDir>$(SolutionDir)HardwareMonitorHelper\bin\$(Configuration)\net10.0</HelperBuildDir>
+  </PropertyGroup>
+
+  <Target Name="CopyHardwareMonitorHelper" AfterTargets="Build" Condition="Exists('$(HelperBuildDir)')">
+    <ItemGroup>
+      <HelperFiles Include="$(HelperBuildDir)\**\*.*" />
+    </ItemGroup>
+
+    <Message Text="Copying HardwareMonitorHelper files to $(OutputPath)" Importance="Low" />
+    <Copy SourceFiles="@(HelperFiles)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+  </Target>
+
 </Project>
