@@ -2,7 +2,10 @@ using FluxProDisplay.DTOs.AppSettings;
 using HidLibrary;
 using LibreHardwareMonitor.PawnIo;
 using Microsoft.Win32.TaskScheduler;
+using System;
 using System.Diagnostics;
+using System.IO;
+using System.Reflection;
 using Task = System.Threading.Tasks.Task;
 
 namespace FluxProDisplay;
@@ -18,6 +21,9 @@ public class FluxProDisplayService : IDisposable
 
     // minimum version needed for pawnIO so it runs fine.
     private const string PawnIoLatestVersion = "2.1.0.0";
+
+    // Lazily cache the PawnIO installer bytes to avoid repeated extraction
+    private static readonly Lazy<byte[]?> CachedPawnIoInstaller = new(ExtractPawnIoInstallerBytes, LazyThreadSafetyMode.ExecutionAndPublication);
 
     private readonly bool _debug;
     private readonly int _pollingInterval;
@@ -328,17 +334,12 @@ public class FluxProDisplayService : IDisposable
 
         try
         {
-            using (var resourceStream = typeof(FluxProDisplayService).Assembly
-                       .GetManifestResourceStream("FluxProDisplay.Assets.PawnIO_setup.exe"))
-            {
-                if (resourceStream == null)
-                    throw new Exception("Embedded installer not found");
+            var installerBytes = CachedPawnIoInstaller.Value;
+            if (installerBytes == null)
+                throw new Exception("Embedded installer not found");
 
-                using (var fileStream = new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.None))
-                {
-                    resourceStream.CopyTo(fileStream);
-                }
-            }
+            // Write cached installer bytes to temp file
+            File.WriteAllBytes(destination, installerBytes);
 
             // run uninstaller, always uninstall if an install is needed.
             var uninstallProcess = Process.Start(new ProcessStartInfo
@@ -365,6 +366,33 @@ public class FluxProDisplayService : IDisposable
         catch (Exception ex)
         {
             MessageBox.Show(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Extracts the embedded PawnIO installer bytes from the assembly.
+    /// This is called lazily on first access and cached thereafter.
+    /// </summary>
+    private static byte[]? ExtractPawnIoInstallerBytes()
+    {
+        try
+        {
+            using (var resourceStream = typeof(FluxProDisplayService).Assembly
+                       .GetManifestResourceStream("FluxProDisplay.Assets.PawnIO_setup.exe"))
+            {
+                if (resourceStream == null)
+                    return null;
+
+                using (var memoryStream = new MemoryStream())
+                {
+                    resourceStream.CopyTo(memoryStream);
+                    return memoryStream.ToArray();
+                }
+            }
+        }
+        catch
+        {
+            return null;
         }
     }
 }
