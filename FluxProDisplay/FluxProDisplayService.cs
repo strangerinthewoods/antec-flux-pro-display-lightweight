@@ -328,7 +328,7 @@ public class FluxProDisplayService : IDisposable
 
         try
         {
-            using (var resourceStream = typeof(FluxProDisplayTray).Assembly
+            using (var resourceStream = typeof(FluxProDisplayService).Assembly
                        .GetManifestResourceStream("FluxProDisplay.Assets.PawnIO_setup.exe"))
             {
                 if (resourceStream == null)
